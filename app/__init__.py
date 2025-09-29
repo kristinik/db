@@ -84,68 +84,39 @@
 #     else:
 #         print("SQL file does not exist")
 
-import mysql.connector
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from app.config import Config
-from app.root import register_routes
+from .config import Config
 import os
-import sys
 
-print(sys.path)
 db = SQLAlchemy()
-
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
+
+    from .root import register_routes
     register_routes(app)
-    create_database()
-    create_tables(app)
-    populate_data()
+
+    from flask_swagger_ui import get_swaggerui_blueprint
+    SWAGGER_URL = "/docs"
+    API_URL = "/openapi.yaml"
+    swaggerui_blueprint = get_swaggerui_blueprint(
+        SWAGGER_URL, API_URL, config={"app_name": "Vending API"}
+    )
+    app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
+    @app.route("/openapi.yaml")
+    def openapi_yaml():
+        static_dir = os.path.join(app.root_path, "static")
+        return send_from_directory(static_dir, "openapi.yaml", mimetype="text/yaml")
+
+    @app.get("/health")
+    def health():
+        return {"status": "ok"}
+
     return app
 
-
-def create_database():
-    connection = mysql.connector.connect(
-        host='127.0.0.1',
-        user='root',
-        password='1111',
-    )
-    cursor = connection.cursor()
-    cursor.execute("CREATE DATABASE IF NOT EXISTS your_database1234")
-    cursor.close()
-    connection.close()
-
-
-def create_tables(app):
-    with app.app_context():
-        db.create_all()
-
-
-def populate_data():
-    sql_file_path = os.path.abspath('data.sql')
-    if os.path.exists('data.sql'):
-        connection = mysql.connector.connect(
-            host='127.0.0.1',
-            user='root',
-            password='1111',
-            database='your_database1234'
-        )
-        cursor = connection.cursor()
-        with open(sql_file_path, 'r') as sql_file:
-            sql_text = sql_file.read()
-            sql_statements = sql_text.split(';')
-            for statement in sql_statements:
-
-                statement = statement.strip()
-                if statement:
-                    try:
-                        cursor.execute(statement)
-                        connection.commit()
-                    except mysql.connector.Error as error:
-                        print(f"Error executing SQL statement: {error}")
-                        connection.rollback()
         cursor.close()
         connection.close()
