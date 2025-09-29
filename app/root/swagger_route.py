@@ -51,7 +51,7 @@ def _autogen_spec():
             }
 
     return {
-        "swagger": "2.0",
+        "swagger": "1.0",
         "info": {"title": "Coin Collection API (auto)", "version": "1.0.0"},
         "host": host,
         "basePath": "/",
