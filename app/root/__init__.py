@@ -20,8 +20,10 @@ def register_routes(app: Flask) -> None:
     from .feedback_route import feedback_bp  # Імпортуємо feedback_bp
 
     from .docs_route import docs_bp
+    from .swagger_route import swagger_bp, swagger_ui_bp
     app.register_blueprint(docs_bp)
-    
+    app.register_blueprint(swagger_bp)
+    app.register_blueprint(swagger_ui_bp)
     # Реєстрація всіх ваших Blueprints
     app.register_blueprint(brand_bp)
     app.register_blueprint(coincollection_bp)
