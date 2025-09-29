@@ -19,6 +19,9 @@ def register_routes(app: Flask) -> None:
     from .vendingmachine_route import vendingmachine_bp
     from .feedback_route import feedback_bp  # Імпортуємо feedback_bp
 
+    from .docs_route import docs_bp
+    app.register_blueprint(docs_bp)
+    
     # Реєстрація всіх ваших Blueprints
     app.register_blueprint(brand_bp)
     app.register_blueprint(coincollection_bp)
