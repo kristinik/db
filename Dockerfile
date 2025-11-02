@@ -13,4 +13,5 @@ COPY . .
 
 ENV PORT=8000
 
-CMD ["gunicorn","-w","2","-b","0.0.0.0:8000","db.wsgi:app"]
+CMD ["gunicorn","-w","2","-b","0.0.0.0:8000","wsgi:app"]
+
