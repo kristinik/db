@@ -105,45 +105,41 @@ jobs:
           aws ecs create-cluster --cluster-name $CLUSTER_NAME >/dev/null 2>&1 || true
 
           echo "==> IAM role for tasks"
-          set +e
-          aws iam get-role --role-name ecsTaskExecutionRole >/dev/null 2>&1 || {
-            cat > trust.json <<'JSON'
-            {"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}
-            JSON
-                        aws iam create-role --role-name ecsTaskExecutionRole --assume-role-policy-document file://trust.json >/dev/null
-                        aws iam attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy >/dev/null
-                      }
-                      set -e
+          if ! aws iam get-role --role-name ecsTaskExecutionRole >/dev/null 2>&1; then
+          printf '%s' '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}' > trust.json
+            aws iam create-role --role-name ecsTaskExecutionRole --assume-role-policy-document file://trust.json >/dev/null
+            aws iam attach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy >/dev/null
+          fi
 
-                      echo "==> Logs group"
-                      aws logs create-log-group --log-group-name /ecs/coin-api >/dev/null 2>&1 || true
+          echo "==> Logs group"
+          aws logs create-log-group --log-group-name /ecs/coin-api >/dev/null 2>&1 || true
 
-                      echo "==> Task definition"
-                      ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-                      cat > taskdef.json <<'JSON'
-            {
-              "family": "REPL_FAMILY",
-              "networkMode": "awsvpc",
-              "requiresCompatibilities": ["FARGATE"],
-              "cpu": "256",
-              "memory": "512",
-              "executionRoleArn": "arn:aws:iam::REPL_ACCOUNT:role/ecsTaskExecutionRole",
-              "taskRoleArn": "arn:aws:iam::REPL_ACCOUNT:role/ecsTaskExecutionRole",
-              "containerDefinitions": [{
-                "name": "REPL_CONTAINER",
-                "image": "REPL_IMAGE",
-                "essential": true,
-                "portMappings": [{ "containerPort": REPL_PORT, "protocol": "tcp" }],
-                "environment": [{ "name": "DATABASE_URL", "value": "REPL_DBURL" }],
-                "logConfiguration": { "logDriver":"awslogs", "options": {
-                  "awslogs-create-group":"true",
-                  "awslogs-group":"/ecs/coin-api",
-                  "awslogs-region":"REPL_REGION",
-                  "awslogs-stream-prefix":"ecs"
-                }}
-              }]
-            }
-            JSON
+          echo "==> Task definition"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          cat > taskdef.json <<'JSON'
+          {
+            "family": "REPL_FAMILY",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "256",
+            "memory": "512",
+            "executionRoleArn": "arn:aws:iam::REPL_ACCOUNT:role/ecsTaskExecutionRole",
+            "taskRoleArn": "arn:aws:iam::REPL_ACCOUNT:role/ecsTaskExecutionRole",
+            "containerDefinitions": [{
+              "name": "REPL_CONTAINER",
+              "image": "REPL_IMAGE",
+              "essential": true,
+              "portMappings": [{ "containerPort": REPL_PORT, "protocol": "tcp" }],
+              "environment": [{ "name": "DATABASE_URL", "value": "REPL_DBURL" }],
+              "logConfiguration": { "logDriver":"awslogs", "options": {
+                "awslogs-create-group":"true",
+                "awslogs-group":"/ecs/coin-api",
+                "awslogs-region":"REPL_REGION",
+                "awslogs-stream-prefix":"ecs"
+              }}
+            }]
+          }
+          JSON
           sed -i "s|REPL_ACCOUNT|$ACCOUNT_ID|g; s|REPL_FAMILY|$FAMILY|g; s|REPL_CONTAINER|$CONTAINER_NAME|g; s|REPL_IMAGE|$IMAGE|g; s|REPL_PORT|$CONTAINER_PORT|g; s|REPL_DBURL|$DATABASE_URL|g; s|REPL_REGION|$AWS_REGION|g" taskdef.json
 
           aws ecs register-task-definition --cli-input-json file://taskdef.json >/dev/null
@@ -223,18 +219,18 @@ jobs:
           CONCURRENCY = int(os.getenv("CONCURRENCY", "120"))
           DURATION = int(os.getenv("DURATION", "600"))
           def worker(q):
-              s = requests.Session()
-              while True:
-                  try:
-                      url = q.get(timeout=1)
-                  except:
-                      return
-                  try:
-                      s.get(url, timeout=5)
-                  except Exception:
-                      pass
-                  finally:
-                      q.task_done()
+          s = requests.Session()
+            while True:
+                try:
+                    url = q.get(timeout=1)
+                except:
+                    return
+                try:
+                    s.get(url, timeout=5)
+                except Exception:
+                    pass
+                finally:
+                    q.task_done()
           def main():
               end = time.time() + DURATION
               q = Queue(maxsize=10000)
@@ -263,7 +259,6 @@ jobs:
           SUBNET1=$(echo $SUBNETS | awk '{print $1}')
           SUBNET2=$(echo $SUBNETS | awk '{print $2}')
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
           cat > lg-taskdef.json <<'JSON'
           {
             "family": "coin-loadgen-task",
