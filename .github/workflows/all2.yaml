@@ -95,7 +95,7 @@ jobs:
           if ! aws rds describe-db-instances --db-instance-identifier "$RDS_ID" >/dev/null 2>&1; then
             aws rds create-db-instance \
               --db-instance-identifier "$RDS_ID" \
-              --engine mysql --engine-version 8.0.35 \
+              --engine mysql \
               --db-instance-class db.t4g.micro \
               --allocated-storage 20 \
               --master-username "$DB_USER" \
