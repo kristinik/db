@@ -102,7 +102,7 @@ jobs:
               --master-user-password "$DB_MASTER_PASS" \
               --vpc-security-group-ids "$RDS_SG_ID" \
               --db-name "$DB_NAME" \
-              --no-multi-az --publicly-accessible false \
+              --no-multi-az --no-publicly-accessible \
               --backup-retention-period 0 \
               --storage-type gp2
           fi
